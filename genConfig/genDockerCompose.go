@@ -291,7 +291,7 @@ func GenService(dockerCompose *DockerCompose, domainName string, serviceName str
 			service.Environment[10] = "CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1." + domainName + "/peers/peer0.org1." + domainName + "/tls/ca.crt"
 			service.Environment[11] = "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1." + domainName + "/users/Admin@org1." + domainName + "/msp"
 			service.WorkingDir = "/opt/gopath/src/github.com/hyperledger/fabric/peer"
-			service.Command = "sleep 3600"
+			service.Command = "sleep 36000000000000"
 			service.Volumes = make([]string, 5)
 			service.Volumes[0] = "/var/run/:/host/var/run/"
 			service.Volumes[1] = "./../chaincode/:/opt/gopath/src/github.com/hyperledger/fabric/examples/chaincode/go"

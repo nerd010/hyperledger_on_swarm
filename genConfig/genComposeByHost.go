@@ -41,8 +41,9 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 
 	dcs := GenPeersWithCouchDb(peers, orgs, hosts, net, domain)
 	for name, dc := range dcs {
-		os.RemoveAll(name + ".yaml")
-		f, err := os.Create(name + ".yaml")
+		filename := name + "." + domain + ".yaml"
+		os.RemoveAll(filename)
+		f, err := os.Create(filename)
 		if err != nil {
 			panic(err)
 		}
@@ -55,7 +56,7 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 
 	for i := 1; i <= orgs; i++ {
 		cadc := genCaService(i, domain, net)
-		filename := "ca" + strconv.Itoa(i) + "." + domain + ".yaml"
+		filename := "ca.org" + strconv.Itoa(i) + "." + domain + ".yaml"
 		os.RemoveAll(filename)
 		f, err := os.Create(filename)
 		if err != nil {
@@ -81,7 +82,7 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 		f.Close()
 	}
 	dc := genCliService(peers, orgs, net, domain, nil)
-	filename := "cli.yaml"
+	filename := "cli_" + domain + ".yaml"
 	os.RemoveAll(filename)
 	f, err := os.Create(filename)
 	if err != nil {
@@ -242,7 +243,7 @@ func genPeersWithCouchDbService(peerIndex, orgNum int, hosts []string, net strin
 		peerService.ExtraHosts = make([]string, len(hosts))
 		peerService.ExtraHosts = hosts
 
-		m[hostname] = &peerService
+		m[tag] = &peerService
 	}
 
 	return m

@@ -3,8 +3,8 @@
 package main
 
 import (
-  "strconv"
 	"fmt"
+	"strconv"
 )
 
 type HostnameData struct {
@@ -50,66 +50,70 @@ type Config struct {
 	PeerOrgs    []OrgSpec `yaml:"PeerOrgs,omitempty"`
 }
 
-func GenCrypto(domainName string, numOrgs int, numPeer int, numOrderer int) (Config, error){
-  fmt.Println("Generating Orderer's crypto config....")
-  ordererData, err := GenOrdererConfig(domainName, numOrderer)
-  check(err)
+func GenCrypto(domainName string, numOrgs int, numPeer int, numOrderer int) (Config, error) {
+	fmt.Println("Generating Orderer's crypto config....")
+	ordererData, err := GenOrdererConfig(domainName, numOrderer)
+	check(err)
 	fmt.Println("Generating Peer's crypto config....")
-  peerData, err := GenPeerConfig(domainName, numOrgs, numPeer)
-  check(err)
+	peerData, err := GenPeerConfig(domainName, numOrgs, numPeer)
+	check(err)
 
-  config := Config{
-    OrdererOrgs:  ordererData,
-    PeerOrgs: peerData,
-  }
+	config := Config{
+		OrdererOrgs: ordererData,
+		PeerOrgs:    peerData,
+	}
 
-  return config, nil
+	return config, nil
 }
 
 func GenOrdererConfig(domainName string, numOrderers int) ([]OrgSpec, error) {
-  config := []OrgSpec{}
-  tempconfig := OrgSpec{
-    Name: "Orderer",
-    Domain: domainName,
-  }
+	config := []OrgSpec{}
+	tempconfig := OrgSpec{
+		Name:   "Orderer",
+		Domain: domainName,
+		Users: UsersSpec{
+			Count: 2,
+		},
+	}
 
-  var hostname NodeSpec
+	var hostname NodeSpec
 
-  if numOrderers > 1 {
-    for i := 0; i < numOrderers; i++ {
-      hostname = NodeSpec{
-        Hostname: "orderer" + strconv.Itoa(i),
-      }
-      tempconfig.Specs = append(tempconfig.Specs, hostname)
-    }
-  } else {
-    hostname = NodeSpec{
-      Hostname: "orderer0",
-    }
-    tempconfig.Specs = append(tempconfig.Specs, hostname)
-  }
-  config = append(config, tempconfig)
+	if numOrderers > 1 {
+		for i := 0; i < numOrderers; i++ {
+			hostname = NodeSpec{
+				Hostname: "orderer" + strconv.Itoa(i),
+			}
+			tempconfig.Specs = append(tempconfig.Specs, hostname)
 
-  return config, nil
+		}
+	} else {
+		hostname = NodeSpec{
+			Hostname: "orderer0",
+		}
+		tempconfig.Specs = append(tempconfig.Specs, hostname)
+	}
+	config = append(config, tempconfig)
+
+	return config, nil
 }
 
 func GenPeerConfig(domainName string, numOrgs int, numPeers int) ([]OrgSpec, error) {
-  config := []OrgSpec{}
+	config := []OrgSpec{}
 
-  for i := 0; i < numOrgs; i++ {
-    nodeTemplate := NodeTemplate{
-      Count:  numPeers,
-    }
-    users := UsersSpec{
-      Count:  1,
-    }
-    tempconfig := OrgSpec{
-      Name: "Org" + strconv.Itoa(i+1),
-      Domain: "org" + strconv.Itoa(i+1) + "." + domainName,
-      Template: nodeTemplate,
-      Users:  users,
-    }
-    config = append(config, tempconfig)
-  }
-  return config, nil
+	for i := 0; i < numOrgs; i++ {
+		nodeTemplate := NodeTemplate{
+			Count: numPeers,
+		}
+		users := UsersSpec{
+			Count: 2,
+		}
+		tempconfig := OrgSpec{
+			Name:     "Org" + strconv.Itoa(i+1),
+			Domain:   "org" + strconv.Itoa(i+1) + "." + domainName,
+			Template: nodeTemplate,
+			Users:    users,
+		}
+		config = append(config, tempconfig)
+	}
+	return config, nil
 }

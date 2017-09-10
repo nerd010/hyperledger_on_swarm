@@ -292,6 +292,14 @@ func genZkService(index, total int, net, domain string, hosts []string) DockerCo
 	service.ExtraHosts = make([]string, len(hosts))
 	service.ExtraHosts = hosts
 	service.NetworkMode = "host"
+	dc.Networks = make(map[string]*Network)
+	networks := make(map[string]*Network)
+	networks[net] = &Network{
+		External: &External{
+			Name: net,
+		},
+	}
+	dc.Networks = networks
 	dc.Services = make(map[string]*Service)
 	dc.Services[serviceName] = service
 	return dc
@@ -330,7 +338,14 @@ func genKafkaService(index, total int, net, domain string, hosts []string) Docke
 	service.ExtraHosts = make([]string, len(hosts))
 	service.ExtraHosts = hosts
 	service.NetworkMode = "host"
-
+	dc.Networks = make(map[string]*Network)
+	networks := make(map[string]*Network)
+	networks[net] = &Network{
+		External: &External{
+			Name: net,
+		},
+	}
+	dc.Networks = networks
 	dc.Services = make(map[string]*Service)
 	dc.Services[serviceName] = service
 
@@ -376,6 +391,15 @@ func genOrderers(index int, net, domain string, hosts []string) DockerCompose {
 	service.Ports[0] = "7050:7050"
 	service.ExtraHosts = make([]string, len(hosts))
 	service.ExtraHosts = hosts
+	service.NetworkMode = "host"
+	dc.Networks = make(map[string]*Network)
+	networks := make(map[string]*Network)
+	networks[net] = &Network{
+		External: &External{
+			Name: net,
+		},
+	}
+	dc.Networks = networks
 	dc.Services = make(map[string]*Service)
 	dc.Services[serviceName] = service
 

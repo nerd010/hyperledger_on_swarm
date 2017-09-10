@@ -181,6 +181,7 @@ func genCliService(peerNum, orgNum int, net, domain string, hosts []string) Dock
 	service.Volumes[4] = "./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts"
 	service.ExtraHosts = make([]string, 0)
 	service.ExtraHosts = hosts
+	dc.Services["cli"] = &service
 	return dc
 
 }
@@ -260,25 +261,11 @@ func genCouchDbService(tag string, net string) *Service {
 	return &s
 }
 
-func genOrdererPorts(seq int) []string {
-	p := strconv.Itoa(seq*10000 + 7050)
-	ports := make([]string, 0)
-	ports = append(ports, p+":7050")
-	return ports
-}
-
-func genPeersPorts(peerNum, orgNum int) []string {
-	ports := make([]string, 0)
-	p := strconv.Itoa(orgNum*10000 + 7051 + peerNum*100)
-	p2 := strconv.Itoa(orgNum*10000 + 7053 + peerNum*100)
-	ports = append(ports, p, p2)
-	return ports
-}
-
 func genZkService(index, total int, net, domain string, hosts []string) DockerCompose {
 	dc := DockerCompose{
 		Version: "3",
 	}
+	serviceName := "zookeeper" + strconv.Itoa(index)
 	hostname := "zookeeper" + strconv.Itoa(index) + "." + domain
 
 	var zookeeperArray []string
@@ -308,7 +295,7 @@ func genZkService(index, total int, net, domain string, hosts []string) DockerCo
 	service.ExtraHosts = hosts
 	service.NetworkMode = "host"
 	dc.Services = make(map[string]*Service)
-	dc.Services[hostname] = service
+	dc.Services[serviceName] = service
 
 	dc.Networks = make(map[string]*Network)
 	networks := make(map[string]*Network)
@@ -326,6 +313,7 @@ func genKafkaService(index, total int, net, domain string, hosts []string) Docke
 	dc := DockerCompose{
 		Version: "3",
 	}
+	serviceName := "kafka" + strconv.Itoa(index)
 	hostname := "kafka" + strconv.Itoa(index)
 	service := &Service{
 		Hostname: hostname + "." + domain,
@@ -355,7 +343,7 @@ func genKafkaService(index, total int, net, domain string, hosts []string) Docke
 	service.NetworkMode = "host"
 
 	dc.Services = make(map[string]*Service)
-	dc.Services[service.Hostname] = service
+	dc.Services[serviceName] = service
 	dc.Networks = make(map[string]*Network)
 	networks := make(map[string]*Network)
 	networks[net] = &Network{
@@ -372,7 +360,7 @@ func genOrderers(index int, net, domain string, hosts []string) DockerCompose {
 	dc := DockerCompose{
 		Version: "3",
 	}
-
+	serviceName := "orderer" + strconv.Itoa(index)
 	hostname := "orderer" + strconv.Itoa(index) + "." + domain
 	service := &Service{
 		Hostname: hostname,
@@ -408,7 +396,7 @@ func genOrderers(index int, net, domain string, hosts []string) DockerCompose {
 	service.ExtraHosts = make([]string, len(hosts))
 	service.ExtraHosts = hosts
 	dc.Services = make(map[string]*Service)
-	dc.Services[service.Hostname] = service
+	dc.Services[serviceName] = service
 	dc.Networks = make(map[string]*Network)
 	networks := make(map[string]*Network)
 	networks[net] = &Network{
@@ -424,6 +412,7 @@ func genCaService(org int, domain, net string) DockerCompose {
 	dc := DockerCompose{
 		Version: "3",
 	}
+	serviceName := "ca_org" + strconv.Itoa(org)
 	hostname := "ca.org" + strconv.Itoa(org) + "." + domain
 	service := &Service{
 		Hostname: hostname,
@@ -443,8 +432,9 @@ func genCaService(org int, domain, net string) DockerCompose {
 	service.Command = "sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/" + hostname + "-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA" + orgId + "_PRIVATE_KEY -b admin:adminpw -d'"
 	service.Volumes = make([]string, 1)
 	service.Volumes[0] = "./crypto-config/peerOrganizations/org" + orgId + "." + domain + "/ca/:/etc/hyperledger/fabric-ca-server-config"
+	service.Ports = []string{"7054:7054"}
 	dc.Services = make(map[string]*Service)
-	dc.Services[service.Hostname] = service
+	dc.Services[serviceName] = service
 	dc.Networks = make(map[string]*Network)
 	networks := make(map[string]*Network)
 	networks[net] = &Network{

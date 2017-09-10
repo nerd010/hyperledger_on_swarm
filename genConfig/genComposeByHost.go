@@ -278,10 +278,7 @@ func genZkService(index, total int, net, domain string, hosts []string) DockerCo
 	service := &Service{
 		Hostname: hostname,
 	}
-	service.Networks = make(map[string]*ServNet, 1)
-	service.Networks[net] = &ServNet{
-		Aliases: []string{hostname},
-	}
+
 	service.Image = "hyperledger/fabric-zookeeper" + TAG
 	service.Environment = make([]string, 3)
 	service.Environment[0] = "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=" + net
@@ -297,15 +294,6 @@ func genZkService(index, total int, net, domain string, hosts []string) DockerCo
 	service.NetworkMode = "host"
 	dc.Services = make(map[string]*Service)
 	dc.Services[serviceName] = service
-
-	dc.Networks = make(map[string]*Network)
-	networks := make(map[string]*Network)
-	networks[net] = &Network{
-		External: &External{
-			Name: net,
-		},
-	}
-	dc.Networks = networks
 	return dc
 }
 
@@ -345,14 +333,6 @@ func genKafkaService(index, total int, net, domain string, hosts []string) Docke
 
 	dc.Services = make(map[string]*Service)
 	dc.Services[serviceName] = service
-	dc.Networks = make(map[string]*Network)
-	networks := make(map[string]*Network)
-	networks[net] = &Network{
-		External: &External{
-			Name: net,
-		},
-	}
-	dc.Networks = networks
 
 	return dc
 }
@@ -398,14 +378,7 @@ func genOrderers(index int, net, domain string, hosts []string) DockerCompose {
 	service.ExtraHosts = hosts
 	dc.Services = make(map[string]*Service)
 	dc.Services[serviceName] = service
-	dc.Networks = make(map[string]*Network)
-	networks := make(map[string]*Network)
-	networks[net] = &Network{
-		External: &External{
-			Name: net,
-		},
-	}
-	dc.Networks = networks
+
 	return dc
 }
 

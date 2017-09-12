@@ -10,9 +10,9 @@ import (
 )
 
 //Main 给三台机器部署fabric集群生成配置文件每个org不能超过9个peer，org不能超过6个,三个zookeeper，三个kafka，两个order都采用host模式部署，两个ca也采用host模式部署
-func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []string) {
+func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []string, addr string) {
 	for i := 0; i < zks; i++ {
-		zkdc := genZkService(i, zks, net, domain, hosts)
+		zkdc := genZkService(i, zks, net, domain, hosts, addr)
 		filename := "zookeeper" + strconv.Itoa(i) + "." + domain + ".yaml"
 		os.RemoveAll(filename)
 		f, err := os.Create(filename)
@@ -26,7 +26,7 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 	}
 
 	for i := 0; i < kafkas; i++ {
-		kafdc := genKafkaService(i, kafkas, net, domain, hosts)
+		kafdc := genKafkaService(i, kafkas, net, domain, hosts, baseAddr)
 		filename := "kafka" + strconv.Itoa(i) + "." + domain + ".yaml"
 		os.RemoveAll(filename)
 		f, err := os.Create(filename)
@@ -39,7 +39,7 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 		f.Close()
 	}
 
-	dcs := GenPeersWithCouchDb(peers, orgs, hosts, net, domain)
+	dcs := GenPeersWithCouchDb(peers, orgs, hosts, net, domain, addr)
 	for name, dc := range dcs {
 		filename := name + "." + domain + ".yaml"
 		os.RemoveAll(filename)
@@ -55,7 +55,7 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 	}
 
 	for i := 1; i <= orgs; i++ {
-		cadc := genCaService(i, domain, net)
+		cadc := genCaService(i, domain, net, baseAddr)
 		filename := "ca.org" + strconv.Itoa(i) + "." + domain + ".yaml"
 		os.RemoveAll(filename)
 		f, err := os.Create(filename)
@@ -69,7 +69,7 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 	}
 
 	for i := 0; i < orderers; i++ {
-		dc := genOrderers(i, net, domain, nil)
+		dc := genOrderers(i, net, domain, baseAddr, nil)
 		filename := "orderer" + strconv.Itoa(i) + "." + domain + ".yaml"
 		os.RemoveAll(filename)
 		f, err := os.Create(filename)
@@ -97,20 +97,20 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 }
 
 //GenPeersWithCouchDb 生成带couchdb的peer节点配置信息，每个配置单独生成一个文件 在一台主机上执行
-func GenPeersWithCouchDb(peerNum, orgNum int, hosts []string, network string, domain string) map[string]DockerCompose {
+func GenPeersWithCouchDb(peerNum, orgNum int, hosts []string, network string, domain, addr string) map[string]DockerCompose {
 	dcs := make(map[string]DockerCompose)
 	for peer := 0; peer < peerNum; peer++ {
-		dc, name := genPeersWithCouchDb(peer, orgNum, hosts, network, domain)
+		dc, name := genPeersWithCouchDb(peer, orgNum, hosts, network, domain, addr)
 		dcs[name] = dc
 	}
 	return dcs
 }
 
-func genPeersWithCouchDb(peer, orgNum int, hosts []string, network string, domain string) (DockerCompose, string) {
+func genPeersWithCouchDb(peer, orgNum int, hosts []string, network, domain, addr string) (DockerCompose, string) {
 	var name = "peer" + strconv.Itoa(peer)
 	services := make(map[string]*Service)
 	for i := 1; i < orgNum; i++ {
-		service := genPeersWithCouchDbService(peer, orgNum, hosts, network, domain)
+		service := genPeersWithCouchDbService(peer, orgNum, hosts, network, domain, addr)
 		for k, v := range service {
 			services[k] = v
 			if strings.Contains(k, "couchdb") {
@@ -153,6 +153,7 @@ func genCliService(peerNum, orgNum int, net, domain string, hosts []string) Dock
 	service := Service{
 		Image:    "hyperledger/fabric-tools" + TAG,
 		Hostname: "cli",
+		Dns:      make([]string, 1),
 	}
 	service.Networks = make(map[string]*ServNet, 1)
 	service.Networks[net] = &ServNet{
@@ -180,13 +181,12 @@ func genCliService(peerNum, orgNum int, net, domain string, hosts []string) Dock
 	service.Volumes[2] = "./crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/"
 	service.Volumes[3] = "./scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/"
 	service.Volumes[4] = "./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts"
-	service.ExtraHosts = make([]string, 0)
-	service.ExtraHosts = hosts
+	service.Dns[0] = baseAddr
 	dc.Services["cli"] = &service
 	return dc
 
 }
-func genPeersWithCouchDbService(peerIndex, orgNum int, hosts []string, net string, domain string) map[string]*Service {
+func genPeersWithCouchDbService(peerIndex, orgNum int, hosts []string, net string, domain string, addr string) map[string]*Service {
 	m := make(map[string]*Service)
 
 	for i := 1; i <= orgNum; i++ {
@@ -203,9 +203,7 @@ func genPeersWithCouchDbService(peerIndex, orgNum int, hosts []string, net strin
 		peerService.Networks[net] = &ServNet{
 			Aliases: []string{hostname},
 		}
-		port7051 := strconv.Itoa((i-1)*10000 + 7051 + peerIndex*100)
-		org1stPort7051 := strconv.Itoa((i-1)*10000 + 7051)
-		port7053 := strconv.Itoa((i-1)*10000 + 7053 + peerIndex*100)
+
 		peerService.Environment = make([]string, 18)
 		peerService.Environment[0] = "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock"
 		peerService.Environment[1] = "CORE_LOGGING_LEVEL=DEBUG"
@@ -217,13 +215,13 @@ func genPeersWithCouchDbService(peerIndex, orgNum int, hosts []string, net strin
 		peerService.Environment[7] = "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key"
 		peerService.Environment[8] = "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt"
 		peerService.Environment[9] = "CORE_PEER_ID=" + hostname
-		peerService.Environment[10] = "CORE_PEER_ADDRESS=" + hostname + ":" + port7051
-		peerService.Environment[11] = "CORE_PEER_GOSSIP_EXTERNALENDPOINT=" + hostname + ":" + port7051
+		peerService.Environment[10] = "CORE_PEER_ADDRESS=" + hostname + ":7051"
+		peerService.Environment[11] = "CORE_PEER_GOSSIP_EXTERNALENDPOINT=" + hostname + ":7051"
 		peerService.Environment[12] = "CORE_PEER_LOCALMSPID=Org" + strconv.Itoa(i) + "MSP"
 		peerService.Environment[13] = "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=" + net
 		peerService.Environment[14] = "CORE_LEDGER_STATE_STATEDATABASE=CouchDB"
 		peerService.Environment[15] = "CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb" + tag + ":5984"
-		peerService.Environment[16] = "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org" + strconv.Itoa(i) + "." + domain + ":" + org1stPort7051
+		peerService.Environment[16] = "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org" + strconv.Itoa(i) + "." + domain + ":7051"
 		peerService.Environment[17] = "GODEBUG=netdns=go" //采用纯go的dns解析，cgo的会有panic
 		//peerService.Environment[3]  = "CORE_PEER_ENDORSER_ENABLED=true"
 		//peerService.Environment[6]  = "CORE_PEER_GOSSIP_SKIPHANDSHAKE=true"
@@ -235,13 +233,11 @@ func genPeersWithCouchDbService(peerIndex, orgNum int, hosts []string, net strin
 		peerService.Volumes[2] = "./crypto-config/peerOrganizations/org" + strconv.Itoa(i) + "." + domain + "/peers/" + hostname + "/tls:/etc/hyperledger/fabric/tls"
 		peerService.Depends = make([]string, 1)
 		peerService.Depends[0] = s.Hostname
-		peerService.ExtraHosts = make([]string, 0)
-		peerService.ExtraHosts = hosts
 		peerService.Ports = make([]string, 2)
-		peerService.Ports[0] = port7051 + ":7051"
-		peerService.Ports[1] = port7053 + ":7053"
-		peerService.ExtraHosts = make([]string, len(hosts))
-		peerService.ExtraHosts = hosts
+		peerService.Ports[0] = "7051:7051"
+		peerService.Ports[1] = "7053:7053"
+		peerService.Dns = make([]string, 1)
+		peerService.Dns[0] = addr
 
 		m[tag] = &peerService
 	}
@@ -262,7 +258,7 @@ func genCouchDbService(tag string, net string) *Service {
 	return &s
 }
 
-func genZkService(index, total int, net, domain string, hosts []string) DockerCompose {
+func genZkService(index, total int, net, domain string, hosts []string, addr string) DockerCompose {
 	dc := DockerCompose{
 		Version: "3",
 	}
@@ -277,6 +273,7 @@ func genZkService(index, total int, net, domain string, hosts []string) DockerCo
 	zlist := strings.Join(zookeeperArray, " ")
 	service := &Service{
 		Hostname: hostname,
+		Dns:      make([]string, 1),
 	}
 
 	service.Image = "hyperledger/fabric-zookeeper" + TAG
@@ -289,9 +286,8 @@ func genZkService(index, total int, net, domain string, hosts []string) DockerCo
 	service.Ports[0] = "2888:2888"
 	service.Ports[1] = "3888:3888"
 	service.Ports[2] = "2181:2181"
-	service.ExtraHosts = make([]string, len(hosts))
-	service.ExtraHosts = hosts
 	service.NetworkMode = "host"
+	service.Dns[0] = addr
 	dc.Networks = make(map[string]*Network)
 	networks := make(map[string]*Network)
 	networks[net] = &Network{
@@ -305,16 +301,18 @@ func genZkService(index, total int, net, domain string, hosts []string) DockerCo
 	return dc
 }
 
-func genKafkaService(index, total int, net, domain string, hosts []string) DockerCompose {
+func genKafkaService(index, total int, net, domain string, hosts []string, ns string) DockerCompose {
 
 	dc := DockerCompose{
 		Version: "3",
 	}
 	serviceName := "kafka" + strconv.Itoa(index)
-	hostname := "kafka" + strconv.Itoa(index)
+	hostname := "kafka" + strconv.Itoa(index) + "." + domain
 	service := &Service{
-		Hostname: hostname + "." + domain,
+		Hostname: hostname,
+		Dns:      make([]string, 1),
 	}
+	service.Dns[0] = ns
 	service.Image = "hyperledger/fabric-kafka" + TAG
 	service.Environment = make([]string, 8)
 	service.Environment[0] = "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=" + net
@@ -335,8 +333,6 @@ func genKafkaService(index, total int, net, domain string, hosts []string) Docke
 	service.Ports[0] = "9092:9092"
 	service.Ports[1] = "9093:9093"
 
-	service.ExtraHosts = make([]string, len(hosts))
-	service.ExtraHosts = hosts
 	service.NetworkMode = "host"
 	dc.Networks = make(map[string]*Network)
 	networks := make(map[string]*Network)
@@ -352,7 +348,7 @@ func genKafkaService(index, total int, net, domain string, hosts []string) Docke
 	return dc
 }
 
-func genOrderers(index int, net, domain string, hosts []string) DockerCompose {
+func genOrderers(index int, net, domain, ns string, hosts []string) DockerCompose {
 	dc := DockerCompose{
 		Version: "3",
 	}
@@ -360,7 +356,9 @@ func genOrderers(index int, net, domain string, hosts []string) DockerCompose {
 	hostname := "orderer" + strconv.Itoa(index) + "." + domain
 	service := &Service{
 		Hostname: hostname,
+		Dns:      make([]string, 1),
 	}
+	service.Dns[0] = ns
 
 	service.Image = "hyperledger/fabric-orderer" + TAG
 	service.Environment = make([]string, 15)
@@ -389,8 +387,6 @@ func genOrderers(index int, net, domain string, hosts []string) DockerCompose {
 	service.Volumes[2] = "./crypto-config/ordererOrganizations/" + domain + "/orderers/" + hostname + "/tls/:/var/hyperledger/orderer/tls"
 	service.Ports = make([]string, 1)
 	service.Ports[0] = "7050:7050"
-	service.ExtraHosts = make([]string, len(hosts))
-	service.ExtraHosts = hosts
 	service.NetworkMode = "host"
 	dc.Networks = make(map[string]*Network)
 	networks := make(map[string]*Network)
@@ -406,7 +402,7 @@ func genOrderers(index int, net, domain string, hosts []string) DockerCompose {
 	return dc
 }
 
-func genCaService(org int, domain, net string) DockerCompose {
+func genCaService(org int, domain, net, ns string) DockerCompose {
 	dc := DockerCompose{
 		Version: "3",
 	}
@@ -414,11 +410,13 @@ func genCaService(org int, domain, net string) DockerCompose {
 	hostname := "ca.org" + strconv.Itoa(org) + "." + domain
 	service := &Service{
 		Hostname: hostname,
+		Dns:      make([]string, 1),
 	}
 	service.Networks = make(map[string]*ServNet, 1)
 	service.Networks[net] = &ServNet{
 		Aliases: []string{hostname},
 	}
+	service.Dns[0] = ns
 	orgId := strconv.Itoa(org)
 	service.Image = "hyperledger/fabric-ca" + TAG
 	service.Environment = make([]string, 5)

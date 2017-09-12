@@ -51,7 +51,7 @@ func main() {
 	check(err)
 
 	if dev {
-		Main(numPeer, numOrgs, numZookeeper, numKafka, numOrderer, overlayNetwork, domain, nil)
+		Main(numPeer, numOrgs, numZookeeper, numKafka, numOrderer, overlayNetwork, domain, nil, baseAddr)
 		return
 	}
 

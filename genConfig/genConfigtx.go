@@ -133,7 +133,7 @@ func GenOrg(orgId int, domainName string) (Organization, error) {
 	orgIdStr := strconv.Itoa(orgId)
 	anchor := AnchorPeer{
 		Host: "peer0.org" + orgIdStr + "." + domainName,
-		Port: (orgId-1)*10000 + 7051,
+		Port: 7051,
 	}
 
 	org := Organization{

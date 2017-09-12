@@ -36,6 +36,7 @@ type Service struct {
 	Ports       []string            `yaml:"ports,omitempty"`
 	Depends     []string            `yaml:"depends_on,omitempty"`
 	ExtraHosts  []string            `yaml:"extra_hosts,omitempty"`
+	Dns         []string            `yaml:"dns,omitempty"`
 }
 
 type ServNet struct {

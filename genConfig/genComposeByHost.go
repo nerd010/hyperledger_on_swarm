@@ -97,44 +97,36 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 }
 
 //GenPeersWithCouchDb 生成带couchdb的peer节点配置信息，每个配置单独生成一个文件 在一台主机上执行
-func GenPeersWithCouchDb(peerNum, orgNum int, hosts []string, network string, domain, addr string) map[string]DockerCompose {
-	dcs := make(map[string]DockerCompose)
-	for peer := 0; peer < peerNum; peer++ {
-		dc, name := genPeersWithCouchDb(peer, orgNum, hosts, network, domain, addr)
-		dcs[name] = dc
-	}
-	return dcs
-}
 
-func genPeersWithCouchDb(peer, orgNum int, hosts []string, network, domain, addr string) (DockerCompose, string) {
-	var name = "peer" + strconv.Itoa(peer)
-	services := make(map[string]*Service)
-	for i := 1; i < orgNum; i++ {
-		service := genPeersWithCouchDbService(peer, orgNum, hosts, network, domain, addr)
-		for k, v := range service {
-			services[k] = v
-			if strings.Contains(k, "couchdb") {
-				continue
-			}
-			name = k
+func GenPeersWithCouchDb(peerNum, orgNum int, hosts []string, network string, domain, addr string) map[string]DockerCompose {
+	result := make(map[string]DockerCompose)
+	for peer := 0; peer < peerNum; peer++ {
+
+		dcs := genPeersWithCouchDb(peer, orgNum, hosts, network, domain, addr)
+		for k, v := range dcs {
+			result[k] = v
 		}
 
 	}
-	dc := DockerCompose{
-		Version:  "3",
-		Services: services,
-		Networks: make(map[string]*Network),
+	return result
+}
+
+//GenPeersWithCouchDb 生成配置
+func genPeersWithCouchDb(peerIndex, orgNum int, hosts []string, network, domain, addr string) map[string]DockerCompose {
+	dcs := make(map[string]DockerCompose)
+	for i := 1; i <= orgNum; i++ {
+		m := genPeersWithCouchDbService(peerIndex, i, hosts, network, domain, addr)
+
+		for k, v := range m {
+			if strings.Contains(k, "couchdb") {
+				continue
+			}
+			dcs[k] = v
+		}
+
 	}
 
-	networks := make(map[string]*Network)
-	networks[network] = &Network{
-		External: &External{
-			Name: network,
-		},
-	}
-	dc.Networks = networks
-
-	return dc, name
+	return dcs
 }
 func genCliService(peerNum, orgNum int, net, domain string, hosts []string) DockerCompose {
 
@@ -186,63 +178,75 @@ func genCliService(peerNum, orgNum int, net, domain string, hosts []string) Dock
 	return dc
 
 }
-func genPeersWithCouchDbService(peerIndex, orgNum int, hosts []string, net string, domain string, addr string) map[string]*Service {
+func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net string, domain string, addr string) map[string]DockerCompose {
+	result := make(map[string]DockerCompose)
+
 	m := make(map[string]*Service)
+	tag := "peer" + strconv.Itoa(peerIndex) + "Org" + strconv.Itoa(orgIndex)
+	s := genCouchDbService(tag, net)
 
-	for i := 1; i <= orgNum; i++ {
-		tag := "peer" + strconv.Itoa(peerIndex) + "Org" + strconv.Itoa(i)
-		s := genCouchDbService(tag, net)
-
-		m[s.Hostname] = s
-		hostname := fmt.Sprintf("peer%d.org%d.%s", peerIndex, i, domain)
-		peerService := Service{
-			Hostname: hostname,
-			Image:    "hyperledger/fabric-peer" + TAG,
-		}
-		peerService.Networks = make(map[string]*ServNet)
-		peerService.Networks[net] = &ServNet{
-			Aliases: []string{hostname},
-		}
-
-		peerService.Environment = make([]string, 18)
-		peerService.Environment[0] = "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock"
-		peerService.Environment[1] = "CORE_LOGGING_LEVEL=DEBUG"
-		peerService.Environment[2] = "CORE_PEER_TLS_ENABLED=true"
-		peerService.Environment[3] = "CORE_PEER_GOSSIP_USELEADERELECTION=true"
-		peerService.Environment[4] = "CORE_PEER_GOSSIP_ORGLEADER=false"
-		peerService.Environment[5] = "CORE_PEER_PROFILE_ENABLED=true"
-		peerService.Environment[6] = "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt"
-		peerService.Environment[7] = "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key"
-		peerService.Environment[8] = "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt"
-		peerService.Environment[9] = "CORE_PEER_ID=" + hostname
-		peerService.Environment[10] = "CORE_PEER_ADDRESS=" + hostname + ":7051"
-		peerService.Environment[11] = "CORE_PEER_GOSSIP_EXTERNALENDPOINT=" + hostname + ":7051"
-		peerService.Environment[12] = "CORE_PEER_LOCALMSPID=Org" + strconv.Itoa(i) + "MSP"
-		peerService.Environment[13] = "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=" + net
-		peerService.Environment[14] = "CORE_LEDGER_STATE_STATEDATABASE=CouchDB"
-		peerService.Environment[15] = "CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb" + tag + ":5984"
-		peerService.Environment[16] = "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org" + strconv.Itoa(i) + "." + domain + ":7051"
-		peerService.Environment[17] = "GODEBUG=netdns=go" //采用纯go的dns解析，cgo的会有panic
-		//peerService.Environment[3]  = "CORE_PEER_ENDORSER_ENABLED=true"
-		//peerService.Environment[6]  = "CORE_PEER_GOSSIP_SKIPHANDSHAKE=true"
-		peerService.WorkingDir = "/opt/gopath/src/github.com/hyperledger/fabric/peer"
-		peerService.Command = "peer node start"
-		peerService.Volumes = make([]string, 3)
-		peerService.Volumes[0] = "/var/run/:/host/var/run/"
-		peerService.Volumes[1] = "./crypto-config/peerOrganizations/org" + strconv.Itoa(i) + "." + domain + "/peers/" + hostname + "/msp:/etc/hyperledger/fabric/msp"
-		peerService.Volumes[2] = "./crypto-config/peerOrganizations/org" + strconv.Itoa(i) + "." + domain + "/peers/" + hostname + "/tls:/etc/hyperledger/fabric/tls"
-		peerService.Depends = make([]string, 1)
-		peerService.Depends[0] = s.Hostname
-		peerService.Ports = make([]string, 2)
-		peerService.Ports[0] = "7051:7051"
-		peerService.Ports[1] = "7053:7053"
-		peerService.Dns = make([]string, 1)
-		peerService.Dns[0] = addr
-
-		m[tag] = &peerService
+	m[s.Hostname] = s
+	hostname := fmt.Sprintf("peer%d.org%d.%s", peerIndex, orgIndex, domain)
+	peerService := Service{
+		Hostname: hostname,
+		Image:    "hyperledger/fabric-peer" + TAG,
+	}
+	peerService.Networks = make(map[string]*ServNet)
+	peerService.Networks[net] = &ServNet{
+		Aliases: []string{hostname},
 	}
 
-	return m
+	peerService.Environment = make([]string, 18)
+	peerService.Environment[0] = "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock"
+	peerService.Environment[1] = "CORE_LOGGING_LEVEL=DEBUG"
+	peerService.Environment[2] = "CORE_PEER_TLS_ENABLED=true"
+	peerService.Environment[3] = "CORE_PEER_GOSSIP_USELEADERELECTION=true"
+	peerService.Environment[4] = "CORE_PEER_GOSSIP_ORGLEADER=false"
+	peerService.Environment[5] = "CORE_PEER_PROFILE_ENABLED=true"
+	peerService.Environment[6] = "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt"
+	peerService.Environment[7] = "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key"
+	peerService.Environment[8] = "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt"
+	peerService.Environment[9] = "CORE_PEER_ID=" + hostname
+	peerService.Environment[10] = "CORE_PEER_ADDRESS=" + hostname + ":7051"
+	peerService.Environment[11] = "CORE_PEER_GOSSIP_EXTERNALENDPOINT=" + hostname + ":7051"
+	peerService.Environment[12] = "CORE_PEER_LOCALMSPID=Org" + strconv.Itoa(orgIndex) + "MSP"
+	peerService.Environment[13] = "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=" + net
+	peerService.Environment[14] = "CORE_LEDGER_STATE_STATEDATABASE=CouchDB"
+	peerService.Environment[15] = "CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb" + tag + ":5984"
+	peerService.Environment[16] = "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org" + strconv.Itoa(orgIndex) + "." + domain + ":7051"
+	peerService.Environment[17] = "GODEBUG=netdns=go" //采用纯go的dns解析，cgo的会有panic
+	//peerService.Environment[3]  = "CORE_PEER_ENDORSER_ENABLED=true"
+	//peerService.Environment[6]  = "CORE_PEER_GOSSIP_SKIPHANDSHAKE=true"
+	peerService.WorkingDir = "/opt/gopath/src/github.com/hyperledger/fabric/peer"
+	peerService.Command = "peer node start"
+	peerService.Volumes = make([]string, 3)
+	peerService.Volumes[0] = "/var/run/:/host/var/run/"
+	peerService.Volumes[1] = "./crypto-config/peerOrganizations/org" + strconv.Itoa(orgIndex) + "." + domain + "/peers/" + hostname + "/msp:/etc/hyperledger/fabric/msp"
+	peerService.Volumes[2] = "./crypto-config/peerOrganizations/org" + strconv.Itoa(orgIndex) + "." + domain + "/peers/" + hostname + "/tls:/etc/hyperledger/fabric/tls"
+	peerService.Depends = make([]string, 1)
+	peerService.Depends[0] = s.Hostname
+	peerService.Ports = make([]string, 2)
+	peerService.Ports[0] = "7051:7051"
+	peerService.Ports[1] = "7053:7053"
+	peerService.Dns = make([]string, 1)
+	peerService.Dns[0] = addr
+
+	m[tag] = &peerService
+
+	dc := DockerCompose{
+		Version:  "3",
+		Services: m,
+	}
+	dc.Networks = make(map[string]*Network)
+	dc.Networks[net] = &Network{
+		External: &External{
+			Name: net,
+		},
+	}
+
+	result[tag] = dc
+
+	return result
 }
 
 func genCouchDbService(tag string, net string) *Service {

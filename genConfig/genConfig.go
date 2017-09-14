@@ -26,7 +26,7 @@ func main() {
 	flag.IntVar(&numKafka, "Kafka", 3, "Choose number of kafka nodes")
 	flag.IntVar(&numZookeeper, "Zookeeper", 3, "Choose number of zookeeper nodes")
 	flag.StringVar(&baseAddr, "baseAddr", "172.17.133.183", "zookeeper or kafka's base ip address")
-	flag.BoolVar(&dev, "dev", true, " for develop environment")
+	flag.BoolVar(&dev, "dev", false, " for develop environment")
 	flag.Parse()
 
 	// Generate crypto-config.yaml
@@ -51,6 +51,7 @@ func main() {
 	check(err)
 
 	if dev {
+		fmt.Println("start create yaml for non swam mode")
 		Main(numPeer, numOrgs, numZookeeper, numKafka, numOrderer, overlayNetwork, domain, nil, baseAddr)
 		return
 	}

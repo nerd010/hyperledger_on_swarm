@@ -18,6 +18,7 @@ func main() {
 	var domain string
 	var numOrgs, numPeer, numOrderer, numKafka, numZookeeper int
 	var dev bool
+	var prod bool
 
 	flag.StringVar(&domain, "domain", "example.com", "Generate config file for a particular doamin")
 	flag.IntVar(&numOrgs, "Orgs", 2, "Choose number of Organizations except Orderer's Organization. CA will be created per each organization")
@@ -27,6 +28,7 @@ func main() {
 	flag.IntVar(&numZookeeper, "Zookeeper", 3, "Choose number of zookeeper nodes")
 	flag.StringVar(&baseAddr, "baseAddr", "172.17.133.183", "zookeeper or kafka's base ip address")
 	flag.BoolVar(&dev, "dev", false, " for develop environment")
+	flag.BoolVar(&prod, "prod", false, "logging level for production")
 	flag.Parse()
 
 	// Generate crypto-config.yaml
@@ -52,7 +54,7 @@ func main() {
 
 	if dev {
 		fmt.Println("start create yaml for non swam mode")
-		Main(numPeer, numOrgs, numZookeeper, numKafka, numOrderer, overlayNetwork, domain, nil, baseAddr)
+		Main(numPeer, numOrgs, numZookeeper, numKafka, numOrderer, overlayNetwork, domain, nil, baseAddr, prod)
 		return
 	}
 

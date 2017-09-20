@@ -20,6 +20,7 @@ function printHelp () {
   echo "    -c <channel name> - channel name to use (defaults to \"mychannel\")"
   echo "    -d <domain name> - domain name to use (defaults to \"example.com\")"
 	echo "    -o <number of orgs> - number of organizations to use (defaults to \"2\")"
+	echo "    -p <production> - production environment (defaults to \"1\")"
   echo
   echo "Taking all defaults:"
   echo "	generateArtifacts.sh"
@@ -45,7 +46,11 @@ function replacePrivateKey () {
   	PRIV_KEY=$(ls *_sk)
   	cd $CURRENT_DIR
   	#sed $OPTS "s/CA1_PRIVATE_KEY/${PRIV_KEY}/g" docker-compose-e2e.yaml
-		sed $OPTS "s/CA${i}_PRIVATE_KEY/${PRIV_KEY}/g" hyperledger-ca.yaml
+		if [ "$PROD" -eq 1 ];then 
+			sed $OPTS "s/CA${i}_PRIVATE_KEY/${PRIV_KEY}/g" ca.org${i}.${DOMAIN_NAME}.yaml
+		else 
+			sed $OPTS "s/CA${i}_PRIVATE_KEY/${PRIV_KEY}/g" hyperledger-ca.yaml
+		fi;
 		i=$(($i + 1))
 	done
 }
@@ -119,7 +124,7 @@ function generateChannelArtifacts() {
 CHANNEL_NAME="mychannel"
 DOMAIN_NAME="example.com"
 NUM_ORGS=2
-
+PROD=1
 # Parse commandline args
 while getopts "h?c:d:o:" opt; do
   case "$opt" in
@@ -132,6 +137,8 @@ while getopts "h?c:d:o:" opt; do
     d)  DOMAIN_NAME=$OPTARG
     ;;
 		o)  NUM_ORGS=$OPTARG
+		;;
+		p) PROD=$OPTARG
 		;;
   esac
 done

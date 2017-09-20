@@ -26,7 +26,7 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 	}
 
 	for i := 0; i < kafkas; i++ {
-		kafdc := genKafkaService(i, kafkas, net, domain, hosts, baseAddr, prod)
+		kafdc := genKafkaService(i, zks, net, domain, hosts, baseAddr, prod)
 		filename := "kafka" + strconv.Itoa(i) + "." + domain + ".yaml"
 		os.RemoveAll(filename)
 		f, err := os.Create(filename)
@@ -39,7 +39,7 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 		f.Close()
 	}
 
-	dcs := GenPeersWithCouchDb(peers, orgs, hosts, net, domain, addr)
+	dcs := GenPeersWithCouchDb(peers, orgs, hosts, net, domain, addr, prod)
 	for name, dc := range dcs {
 		filename := name + "." + domain + ".yaml"
 		os.RemoveAll(filename)
@@ -98,11 +98,11 @@ func Main(peers, orgs, zks, kafkas, orderers int, net, domain string, hosts []st
 
 //GenPeersWithCouchDb 生成带couchdb的peer节点配置信息，每个配置单独生成一个文件 在一台主机上执行
 
-func GenPeersWithCouchDb(peerNum, orgNum int, hosts []string, network string, domain, addr string) map[string]DockerCompose {
+func GenPeersWithCouchDb(peerNum, orgNum int, hosts []string, network string, domain, addr string, prod bool) map[string]DockerCompose {
 	result := make(map[string]DockerCompose)
 	for peer := 0; peer < peerNum; peer++ {
 
-		dcs := genPeersWithCouchDb(peer, orgNum, hosts, network, domain, addr)
+		dcs := genPeersWithCouchDb(peer, orgNum, hosts, network, domain, addr, prod)
 		for k, v := range dcs {
 			result[k] = v
 		}
@@ -112,10 +112,10 @@ func GenPeersWithCouchDb(peerNum, orgNum int, hosts []string, network string, do
 }
 
 //GenPeersWithCouchDb 生成配置
-func genPeersWithCouchDb(peerIndex, orgNum int, hosts []string, network, domain, addr string) map[string]DockerCompose {
+func genPeersWithCouchDb(peerIndex, orgNum int, hosts []string, network, domain, addr string, prod bool) map[string]DockerCompose {
 	dcs := make(map[string]DockerCompose)
 	for i := 1; i <= orgNum; i++ {
-		m := genPeersWithCouchDbService(peerIndex, i, hosts, network, domain, addr)
+		m := genPeersWithCouchDbService(peerIndex, i, hosts, network, domain, addr, prod)
 
 		for k, v := range m {
 			if strings.Contains(k, "couchdb") {
@@ -181,7 +181,7 @@ func genCliService(peerNum, orgNum int, net, domain string, hosts []string, prod
 	return dc
 
 }
-func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net string, domain string, addr string) map[string]DockerCompose {
+func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net string, domain string, addr string, prod bool) map[string]DockerCompose {
 	result := make(map[string]DockerCompose)
 
 	m := make(map[string]*Service)
@@ -202,6 +202,9 @@ func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net str
 	peerService.Environment = make([]string, 18)
 	peerService.Environment[0] = "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock"
 	peerService.Environment[1] = "CORE_LOGGING_LEVEL=DEBUG"
+	if prod {
+		peerService.Environment[1] = "CORE_LOGGING_PEER=warning"
+	}
 	peerService.Environment[2] = "CORE_PEER_TLS_ENABLED=true"
 	peerService.Environment[3] = "CORE_PEER_GOSSIP_USELEADERELECTION=true"
 	peerService.Environment[4] = "CORE_PEER_GOSSIP_ORGLEADER=false"
@@ -435,12 +438,13 @@ func genCaService(org int, domain, net, ns string) DockerCompose {
 	service.Dns[0] = ns
 	orgId := strconv.Itoa(org)
 	service.Image = "hyperledger/fabric-ca" + TAG
-	service.Environment = make([]string, 5)
+	service.Environment = make([]string, 6)
 	service.Environment[0] = "FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server"
 	service.Environment[1] = "FABRIC_CA_SERVER_CA_NAME=" + hostname
 	service.Environment[2] = "FABRIC_CA_SERVER_TLS_ENABLED=true"
 	service.Environment[3] = "FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/" + hostname + "-cert.pem"
 	service.Environment[4] = "FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA" + orgId + "_PRIVATE_KEY"
+	service.Environment[5] = "GODEBUG=netdns=go"
 	service.Command = "sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/" + hostname + "-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA" + orgId + "_PRIVATE_KEY -b admin:adminpw -d'"
 	service.Volumes = make([]string, 1)
 	service.Volumes[0] = "./crypto-config/peerOrganizations/org" + orgId + "." + domain + "/ca/:/etc/hyperledger/fabric-ca-server-config"

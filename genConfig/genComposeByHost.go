@@ -260,7 +260,6 @@ func genCouchDbService(tag string, net string) *Service {
 		Image:    "hyperledger/fabric-couchdb" + TAG,
 		Networks: make(map[string]*ServNet, 1),
 	}
-	s.Environment = make([]string, 2)
 	s.Volumes = make([]string, 1)
 	s.Volumes[0] = "/data/couchdb/" + name + ":/opt/couchdb/data"
 	s.Networks[net] = &ServNet{

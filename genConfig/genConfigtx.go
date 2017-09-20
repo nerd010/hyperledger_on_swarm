@@ -175,7 +175,7 @@ func GenOrderer(numOrderer int, domainName string, kafka Kafka) (Orderer, error)
 		orderer = Orderer{
 			OrdererType:  "kafka",
 			Addresses:    address_list,
-			BatchTimeout: 2 * time.Second,
+			BatchTimeout: 1 * time.Second,
 			BatchSize: BatchSize{
 				MaxMessageCount:   10,
 				AbsoluteMaxBytes:  99 * 1024 * 1024, // 99 MB

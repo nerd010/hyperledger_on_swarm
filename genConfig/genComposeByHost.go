@@ -230,6 +230,7 @@ func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net str
 	peerService.Volumes[1] = "./crypto-config/peerOrganizations/org" + strconv.Itoa(orgIndex) + "." + domain + "/peers/" + hostname + "/msp:/etc/hyperledger/fabric/msp"
 	peerService.Volumes[2] = "./crypto-config/peerOrganizations/org" + strconv.Itoa(orgIndex) + "." + domain + "/peers/" + hostname + "/tls:/etc/hyperledger/fabric/tls"
 	peerService.Volumes[3] = "/data/peer/" + hostname + ":/var/hyperledger/production"
+	peerService.Privileged = true
 	peerService.Depends = make([]string, 1)
 	peerService.Depends[0] = s.Hostname
 	peerService.Ports = make([]string, 2)
@@ -265,6 +266,7 @@ func genCouchDbService(tag string, net string) *Service {
 	}
 	s.Volumes = make([]string, 1)
 	s.Volumes[0] = "/data/couchdb/" + name + ":/opt/couchdb/data"
+	s.Privileged = true
 	s.Networks[net] = &ServNet{
 		Aliases: []string{name},
 	}
@@ -344,6 +346,7 @@ func genKafkaService(index, total int, net, domain string, hosts []string, ns st
 	service.Environment[7] = "KAFKA_BROKER_ID=" + strconv.Itoa(index)
 	service.Volumes = make([]string, 1)
 	service.Volumes[0] = "/data/kafka/" + hostname + ":/tmp/kafka-logs"
+	service.Privileged = true
 	service.Ports = make([]string, 2)
 	service.Ports[0] = "9092:9092"
 	service.Ports[1] = "9093:9093"
@@ -404,6 +407,7 @@ func genOrderers(index int, net, domain, ns string, hosts []string, prod bool) D
 	service.Volumes[1] = "./crypto-config/ordererOrganizations/" + domain + "/orderers/" + hostname + "/msp:/var/hyperledger/orderer/msp"
 	service.Volumes[2] = "./crypto-config/ordererOrganizations/" + domain + "/orderers/" + hostname + "/tls/:/var/hyperledger/orderer/tls"
 	service.Volumes[3] = "/data/orderer/" + hostname + ":/var/hyperledger/production"
+	service.Privileged = true
 	service.Ports = make([]string, 1)
 	service.Ports[0] = "7050:7050"
 	service.NetworkMode = "host"
@@ -448,6 +452,7 @@ func genCaService(org int, domain, net, ns string) DockerCompose {
 	service.Command = "sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/" + hostname + "-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA" + orgId + "_PRIVATE_KEY -b admin:adminpw -d'"
 	service.Volumes = make([]string, 1)
 	service.Volumes[0] = "./crypto-config/peerOrganizations/org" + orgId + "." + domain + "/ca/:/etc/hyperledger/fabric-ca-server-config"
+	service.Privileged = true
 	service.Ports = []string{"7054:7054"}
 	dc.Services = make(map[string]*Service)
 	dc.Services[serviceName] = service

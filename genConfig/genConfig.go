@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/baoyangc/yaml"
 )
 
 var (
@@ -26,7 +27,7 @@ func main() {
 	flag.IntVar(&numOrderer, "Orderer", 2, "Choose number of orderers (if set, need to specify number of Kafka nodes)")
 	flag.IntVar(&numKafka, "Kafka", 3, "Choose number of kafka nodes")
 	flag.IntVar(&numZookeeper, "Zookeeper", 3, "Choose number of zookeeper nodes")
-	flag.StringVar(&baseAddr, "baseAddr", "172.17.133.183", "zookeeper or kafka's base ip address")
+	flag.StringVar(&baseAddr, "baseAddr", "172.17.133.204", "zookeeper or kafka's base ip address")
 	flag.BoolVar(&dev, "dev", false, " for develop environment")
 	flag.BoolVar(&prod, "prod", false, "logging level for production")
 	flag.Parse()

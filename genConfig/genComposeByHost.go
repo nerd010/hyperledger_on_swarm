@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"github.com/baoyangc/yaml"
 )
 
 //Main 给三台机器部署fabric集群生成配置文件每个org不能超过9个peer，org不能超过6个,三个zookeeper，三个kafka，两个order都采用host模式部署，两个ca也采用host模式部署
@@ -155,7 +155,7 @@ func genCliService(peerNum, orgNum int, net, domain string, hosts []string, prod
 	service.Environment[0] = "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=" + net
 	service.Environment[1] = "GOPATH=/opt/gopath"
 	service.Environment[2] = "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock"
-	service.Environment[3] = "CORE_LOGGING_PEER=debug"
+	service.Environment[3] = "CORE_LOGGING_LEVEL=DEBUG"
 	if prod {
 		service.Environment[3] = "CORE_LOGGING_PEER=warning"
 	}

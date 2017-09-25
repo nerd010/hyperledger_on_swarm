@@ -199,7 +199,7 @@ func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net str
 		Aliases: []string{hostname},
 	}
 
-	peerService.Environment = make([]string, 18)
+	peerService.Environment = make([]string, 20)
 	peerService.Environment[0] = "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock"
 	peerService.Environment[1] = "CORE_LOGGING_LEVEL=DEBUG"
 	if prod {
@@ -221,6 +221,8 @@ func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net str
 	peerService.Environment[15] = "CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb" + tag + ":5984"
 	peerService.Environment[16] = "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org" + strconv.Itoa(orgIndex) + "." + domain + ":7051"
 	peerService.Environment[17] = "GODEBUG=netdns=go" //采用纯go的dns解析，cgo的会有panic
+        peerService.Environment[18] = "CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin"
+        peerService.Environment[19] = "CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=U1T6UafF"
 	//peerService.Environment[3]  = "CORE_PEER_ENDORSER_ENABLED=true"
 	//peerService.Environment[6]  = "CORE_PEER_GOSSIP_SKIPHANDSHAKE=true"
 	peerService.WorkingDir = "/opt/gopath/src/github.com/hyperledger/fabric/peer"

@@ -10,17 +10,16 @@
 
 export FABRIC_ROOT=${PWD}/..
 export FABRIC_CFG_PATH=${PWD}
-echo
-
+echo 
 # Print the usage message
-function printHelp () {
+function printHelp (){
     echo "Usage: "
     echo "  generateArtifacts.sh [-c <channel name>] [-d <domain name>] [-o <number of orgs] [-p < 0 or 1 for dev or prod]"
     echo "  generateArtifacts.sh -h|--help (print this message)"
     echo "    -c <channel name> - channel name to use (defaults to \"mychannel\")"
     echo "    -d <domain name> - domain name to use (defaults to \"example.com\")"
     echo "    -o <number of orgs> - number of organizations to use (defaults to \"2\")"
-    echo "    -p <production> - production environment (defaults to \"0\",for dev; for prod set \"1\"" )"
+    echo "    -p <production> - production environment (defaults to \"0\",for dev; for prod set \"1\" )"
     echo
     echo "Taking all defaults:"
     echo "	generateArtifacts.sh"

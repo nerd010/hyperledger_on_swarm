@@ -156,9 +156,7 @@ func genCliService(peerNum, orgNum int, net, domain string, hosts []string, prod
 	service.Environment[1] = "GOPATH=/opt/gopath"
 	service.Environment[2] = "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock"
 	service.Environment[3] = "CORE_LOGGING_LEVEL=DEBUG"
-	if prod {
-		service.Environment[3] = "CORE_LOGGING_PEER=warning"
-	}
+
 	service.Environment[4] = "CORE_PEER_ID=cli"
 	service.Environment[5] = "CORE_PEER_ADDRESS=peer0.org1." + domain + ":7051"
 	service.Environment[6] = "CORE_PEER_LOCALMSPID=Org1MSP"
@@ -202,13 +200,14 @@ func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net str
 	peerService.Environment = make([]string, 20)
 	peerService.Environment[0] = "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock"
 	peerService.Environment[1] = "CORE_LOGGING_LEVEL=DEBUG"
+	peerService.Environment[5] = "CORE_PEER_PROFILE_ENABLED=true"
 	if prod {
 		peerService.Environment[1] = "CORE_LOGGING_PEER=warning"
+		peerService.Environment[5] = "CORE_PEER_PROFILE_ENABLED=false"
 	}
 	peerService.Environment[2] = "CORE_PEER_TLS_ENABLED=true"
 	peerService.Environment[3] = "CORE_PEER_GOSSIP_USELEADERELECTION=true"
 	peerService.Environment[4] = "CORE_PEER_GOSSIP_ORGLEADER=false"
-	peerService.Environment[5] = "CORE_PEER_PROFILE_ENABLED=true"
 	peerService.Environment[6] = "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt"
 	peerService.Environment[7] = "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key"
 	peerService.Environment[8] = "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt"
@@ -221,8 +220,8 @@ func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net str
 	peerService.Environment[15] = "CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb" + tag + ":5984"
 	peerService.Environment[16] = "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org" + strconv.Itoa(orgIndex) + "." + domain + ":7051"
 	peerService.Environment[17] = "GODEBUG=netdns=go" //采用纯go的dns解析，cgo的会有panic
-        peerService.Environment[18] = "CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin"
-        peerService.Environment[19] = "CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=U1T6UafF"
+	peerService.Environment[18] = "CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin"
+	peerService.Environment[19] = "CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=U1T6UafF"
 	//peerService.Environment[3]  = "CORE_PEER_ENDORSER_ENABLED=true"
 	//peerService.Environment[6]  = "CORE_PEER_GOSSIP_SKIPHANDSHAKE=true"
 	peerService.WorkingDir = "/opt/gopath/src/github.com/hyperledger/fabric/peer"

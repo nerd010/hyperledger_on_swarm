@@ -34,6 +34,7 @@ type Service struct {
 	Command     string              `yaml:"command,omitempty"`
 	Volumes     []string            `yaml:"volumes,omitempty"`
 	Privileged  bool                `yaml:"privileged,omitempty"`
+	User        string              `yaml:"user,omitempty"`
 	Ports       []string            `yaml:"ports,omitempty"`
 	Depends     []string            `yaml:"depends_on,omitempty"`
 	ExtraHosts  []string            `yaml:"extra_hosts,omitempty"`
@@ -63,7 +64,7 @@ type RestartPolicy struct {
 }
 
 //var TAG = `:x86_64-1.0.0-beta`
-var TAG = `:x86_64-1.0.0`
+var TAG = `:x86_64-`
 
 func GenDockerCompose(serviceName string, domainName string, networkName string, num ...int) (*DockerCompose, error) {
 	var dockerCompose = &DockerCompose{}
@@ -228,6 +229,8 @@ func GenService(dockerCompose *DockerCompose, domainName string, serviceName str
 			}
 			service.Image = "hyperledger/fabric-couchdb" + TAG
 			service.Networks = make(map[string]*ServNet, 1)
+			service.User = "root"
+			service.Privileged = true
 			service.Networks[networkName] = &ServNet{
 				Aliases: []string{serviceHost},
 			}

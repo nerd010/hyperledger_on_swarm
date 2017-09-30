@@ -20,6 +20,7 @@ func main() {
 	var numOrgs, numPeer, numOrderer, numKafka, numZookeeper int
 	var dev bool
 	var prod bool
+	var tagtail string
 
 	flag.StringVar(&domain, "domain", "example.com", "Generate config file for a particular doamin")
 	flag.IntVar(&numOrgs, "Orgs", 2, "Choose number of Organizations except Orderer's Organization. CA will be created per each organization")
@@ -28,9 +29,11 @@ func main() {
 	flag.IntVar(&numKafka, "Kafka", 3, "Choose number of kafka nodes")
 	flag.IntVar(&numZookeeper, "Zookeeper", 3, "Choose number of zookeeper nodes")
 	flag.StringVar(&baseAddr, "baseAddr", "172.17.133.204", "zookeeper or kafka's base ip address")
+	flag.StringVar(&tagtail, "tagtail", "1.0.0", "fabric version tag")
 	flag.BoolVar(&dev, "dev", false, " for develop environment")
 	flag.BoolVar(&prod, "prod", false, "logging level for production")
 	flag.Parse()
+	TAG = TAG + tagtail
 
 	// Generate crypto-config.yaml
 	crypto, err := GenCrypto(domain, numOrgs, numPeer, numOrderer)

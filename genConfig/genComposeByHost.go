@@ -268,6 +268,7 @@ func genCouchDbService(tag string, net string) *Service {
 	s.Environment = make([]string, 2)
 	s.Environment[0] = "COUCHDB_USER=admin"
 	s.Environment[1] = "COUCHDB_PASSWORD=U1T6UafF"
+	s.User = "root"
 	s.Volumes = make([]string, 1)
 	s.Volumes[0] = "/data/couchdb/" + name + ":/opt/couchdb/data"
 	s.Privileged = true

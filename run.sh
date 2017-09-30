@@ -8,7 +8,7 @@ export ARCH=$(echo "$(uname -s|tr '[:upper:]' '[:lower:]'|sed 's/mingw64_nt.*/wi
 #Set MARCH variable i.e ppc64le,s390x,x86_64,i386
 MARCH=`uname -m`
 
-CHANNEL="chaichannel"
+CHANNEL_NAME="chaichannel"
 KAFKA=4
 ZOOKEEPER=3
 ORDERER=3
@@ -40,7 +40,7 @@ function downloadBinary(){
 
 function generateComposefiles(){
     if [ "$SWARM" == "0" ];then
-        ./bin/$MARCH/genConfig -Kafka $KAFKA -Orderer $ORDERER -Orgs $ORGS -Peer $PEER  -Zookeeper $ZOOKEEPER -domain $DOMAIN -tagtail $VERSION
+        ./bin/$ARCH/genConfig -Kafka $KAFKA -Orderer $ORDERER -Orgs $ORGS -Peer $PEER  -Zookeeper $ZOOKEEPER -domain $DOMAIN -tagtail $VERSION
     else
          ./bin/$MARCH/genConfig -Kafka $KAFKA -Orderer $ORDERER -Orgs $ORGS -Peer $PEER  -Zookeeper $ZOOKEEPER -domain $DOMAIN -tagtail $VERSION -dev -prod
     fi;
@@ -66,9 +66,9 @@ function replacePrivateKey() {
     PRIV_KEY=$(ls *_sk)
     cd $CURRENT_DIR
     if [ "$SWARM" == "0" ];then
-        sed $OPTS "s/CA${i}_PRIVATE_KEY/${PRIV_KEY}/g" ca.org${i}.${DOMAIN}.yaml
+        sed $OPTS "s/CA${i}_PRIVATE_KEY/${PRIV_KEY}/g"  hyperledger-ca.yaml
     else
-        sed $OPTS "s/CA${i}_PRIVATE_KEY/${PRIV_KEY}/g" hyperledger-ca.yaml 
+        sed $OPTS "s/CA${i}_PRIVATE_KEY/${PRIV_KEY}/g"  ca.org${i}.${DOMAIN}.yaml
     fi;
     if [ "$ARCH" == "Darwin" ]; then
         rm  -rf ca.org${i}.${DOMAIN}.yamlt;
@@ -80,6 +80,7 @@ function replacePrivateKey() {
 function generateCerts()
 {
   rm -rf crypto-config/*
+  mkdir -p crypto-config
   which cryptogen
   if [ "$?" -ne 0 ]; then
     echo "cryptogen tool not found. exiting"
@@ -102,6 +103,7 @@ function generateCerts()
 
 function generateChannelArtifacts(){
     rm -rf channel-artifacts/*
+    mkdir -p channel-artifacts
     which configtxgen
   if [ "$?" -ne 0 ]; then
     echo "configtxgen tool not found. exiting"
@@ -129,12 +131,12 @@ function generateChannelArtifacts(){
   fi
 
     i=1
-    while [ "$i" -le "ORGS" ]; do
+    while [ "$i" -le "$ORGS" ]; do
         echo
         echo "#################################################################"
         echo "#######    Generating anchor peer update for Org${i}MSP   ##########"
         echo "#################################################################"
-        $CONFIGTXGEN -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org${i}MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org${i}MSP
+        configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org${i}MSPanchors.tx -channelID $CHANNEL_NAME -asOrg Org${i}MSP
         if [ "$?" -ne 0 ]; then
             echo "Failed to generate anchor peer update for Org${i}MSP..."
             exit 1
@@ -166,7 +168,7 @@ function switchEnv()
 EOF
 }
 
-while getopts "h?k:z:o:p:g:d:s:v:b:c" 
+while getopts "h?k:z:o:p:g:d:s:v:b:c" opt;
 do
     case "$opt" in 
         h|\?)
@@ -201,12 +203,10 @@ do
 done
 
 generateComposefiles
+generateCerts
+generateChannelArtifacts
 replacePrivateKey
 
-echo "===> Downloading platform binaries"
-curl https://nexus.hyperledger.org/content/repositories/releases/org/hyperledger/fabric/hyperledger-fabric/${ARCH}-${VERSION}/hyperledger-fabric-${ARCH}-${VERSION}.tar.gz | tar xz
-sh genConfig/build.sh
 
-mkdir -p scripts
 
-./bin/$ARCH/genCOnfig -Kafka 4 -Orderer 3 -Orgs 2 -Peer 2 -Zookeeper 3 -domain chai.cn -dev -prod -tagtail $VERSION
+#./bin/$ARCH/genCOnfig -Kafka 4 -Orderer 3 -Orgs 2 -Peer 2 -Zookeeper 3 -domain chai.cn -dev -prod -tagtail $VERSION

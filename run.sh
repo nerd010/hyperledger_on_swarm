@@ -42,7 +42,7 @@ function generateComposefiles(){
     if [ "$SWARM" == "0" ];then
         ./bin/$ARCH/genConfig -Kafka $KAFKA -Orderer $ORDERER -Orgs $ORGS -Peer $PEER  -Zookeeper $ZOOKEEPER -domain $DOMAIN -tagtail $VERSION
     else
-         ./bin/$MARCH/genConfig -Kafka $KAFKA -Orderer $ORDERER -Orgs $ORGS -Peer $PEER  -Zookeeper $ZOOKEEPER -domain $DOMAIN -tagtail $VERSION -dev -prod
+         ./bin/$ARCH/genConfig -Kafka $KAFKA -Orderer $ORDERER -Orgs $ORGS -Peer $PEER  -Zookeeper $ZOOKEEPER -domain $DOMAIN -tagtail $VERSION -dev -prod
     fi;
 }
 
@@ -206,6 +206,7 @@ generateComposefiles
 generateCerts
 generateChannelArtifacts
 replacePrivateKey
+generateScripts
 
 
 

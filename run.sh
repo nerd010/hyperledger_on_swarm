@@ -157,9 +157,9 @@ function switchEnv()
         echo "Usage: switchEnv PeerNO OrgNO Domain"
         exit 1;
     fi;
-    PEER=$1
-    ORG=$2
-    DOMAIN=$3
+    PEER=\$1
+    ORG=\$2
+    DOMAIN=\$3
     CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org${ORG}.${DOMAIN}/users/Admin@org${ORG}.${DOMAIN}/msp
     CORE_PEER_ADDRESS=peer${PEER}.org${ORG}.${DOMAIN}:7051
     CORE_PEER_LOCALMSPID="Org${ORG}MSP"

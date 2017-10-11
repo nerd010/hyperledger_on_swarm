@@ -160,10 +160,10 @@ function switchEnv()
     PEER=\$1
     ORG=\$2
     DOMAIN=\$3
-    CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org${ORG}.${DOMAIN}/users/Admin@org${ORG}.${DOMAIN}/msp
-    CORE_PEER_ADDRESS=peer${PEER}.org${ORG}.${DOMAIN}:7051
-    CORE_PEER_LOCALMSPID="Org${ORG}MSP"
-    CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org${ORG}.${DOMAIN}/peers/peer${PEER}.org${ORG}.${DOMAIN}/tls/ca.crt
+    CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org\${ORG}.\${DOMAIN}/users/Admin@org\${ORG}.\${DOMAIN}/msp
+    CORE_PEER_ADDRESS=peer\${PEER}.org\${ORG}.\${DOMAIN}:7051
+    CORE_PEER_LOCALMSPID="Org\${ORG}MSP"
+    CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org\${ORG}.\${DOMAIN}/peers/peer\${PEER}.org\${ORG}.\${DOMAIN}/tls/ca.crt
 }
 EOF
 }

@@ -33,6 +33,7 @@ type Service struct {
 	WorkingDir  string              `yaml:"working_dir,omitempty"`
 	Command     string              `yaml:"command,omitempty"`
 	Volumes     []string            `yaml:"volumes,omitempty"`
+	Restart     string              `yaml:"restart,omitempty"`
 	Privileged  bool                `yaml:"privileged,omitempty"`
 	User        string              `yaml:"user,omitempty"`
 	Ports       []string            `yaml:"ports,omitempty"`

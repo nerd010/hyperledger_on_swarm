@@ -239,6 +239,7 @@ func genPeersWithCouchDbService(peerIndex, orgIndex int, hosts []string, net str
 	peerService.Ports[1] = "7053:7053"
 	peerService.Dns = make([]string, 1)
 	peerService.Dns[0] = addr
+	peerService.Restart = "on-falure"
 
 	m[tag] = &peerService
 
@@ -268,6 +269,7 @@ func genCouchDbService(tag string, net string) *Service {
 	s.Environment = make([]string, 2)
 	s.Environment[0] = "COUCHDB_USER=admin"
 	s.Environment[1] = "COUCHDB_PASSWORD=U1T6UafF"
+	s.Restart = "unless-stopped"
 	s.User = "root"
 	s.Volumes = make([]string, 1)
 	s.Volumes[0] = "/data/couchdb/" + name + ":/opt/couchdb/data"
@@ -301,6 +303,9 @@ func genZkService(index, total int, net, domain string, hosts []string, addr str
 	service.Environment[0] = "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=" + net
 	service.Environment[1] = "ZOO_MY_ID=" + strconv.Itoa(index+1)
 	service.Environment[2] = "ZOO_SERVERS=" + zlist
+	service.Volumes = make([]string, 2)
+	service.Volumes[0] = "/data/zookeeper/" + hostname + "/data:/data"
+	service.Volumes[1] = "/data/zookeeper/" + hostname + "/datalog:/datalog"
 
 	service.Ports = make([]string, 3)
 	service.Ports[0] = "2888:2888"
@@ -308,6 +313,7 @@ func genZkService(index, total int, net, domain string, hosts []string, addr str
 	service.Ports[2] = "2181:2181"
 	service.NetworkMode = "host"
 	service.Dns[0] = addr
+	service.Restart = "always"
 	dc.Networks = make(map[string]*Network)
 	networks := make(map[string]*Network)
 	networks[net] = &Network{
@@ -341,7 +347,7 @@ func genKafkaService(index, total int, net, domain string, hosts []string, ns st
 	service.Environment[3] = "KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE=false"
 	service.Environment[4] = "KAFKA_DEFAULT_REPLICATION_FACTOR=3"
 	service.Environment[5] = "KAFKA_MIN_INSYNC_REPLICAS=2"
-
+	service.Restart = "on-failure"
 	var zkarray []string
 	for i := 0; i < total; i++ {
 		zkarray = append(zkarray, "zookeeper"+strconv.Itoa(i)+"."+domain+":2181")
@@ -406,7 +412,7 @@ func genOrderers(index int, net, domain, ns string, hosts []string, prod bool) D
 
 	service.WorkingDir = "/opt/gopath/src/github.com/hyperledger/fabric"
 	service.Command = "orderer"
-
+	service.Restart = "unless-stopped"
 	service.Volumes = make([]string, 4)
 	service.Volumes[0] = "./channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block"
 	service.Volumes[1] = "./crypto-config/ordererOrganizations/" + domain + "/orderers/" + hostname + "/msp:/var/hyperledger/orderer/msp"
@@ -454,7 +460,7 @@ func genCaService(org int, domain, net, ns string) DockerCompose {
 	service.Environment[3] = "FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/" + hostname + "-cert.pem"
 	service.Environment[4] = "FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/CA" + orgId + "_PRIVATE_KEY"
 	service.Environment[5] = "GODEBUG=netdns=go"
-	service.Command = "sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/" + hostname + "-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA" + orgId + "_PRIVATE_KEY -b admin:adminpw -d'"
+	service.Command = "sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/" + hostname + "-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/CA" + orgId + "_PRIVATE_KEY -b admin:adminpw -db.type mysql -db.datasource root:rootpw@tcp\\(mysql.rds.aliyun.com:3306\\)/fabrid_ca_dbname?parseTime=true'"
 	service.Volumes = make([]string, 1)
 	service.Volumes[0] = "./crypto-config/peerOrganizations/org" + orgId + "." + domain + "/ca/:/etc/hyperledger/fabric-ca-server-config"
 	service.Privileged = true
